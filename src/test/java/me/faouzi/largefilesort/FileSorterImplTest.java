@@ -36,7 +36,6 @@ public class FileSorterImplTest {
 
 	private final FileSorterImpl fileSorter = new FileSorterImpl();
 
-	private BufferedReader in = null;
 
 	private File testInputFile;
 
@@ -50,17 +49,6 @@ public class FileSorterImplTest {
 		testInputFile = new File(resource.toURI());
 
 	}
-
-	@After
-	public void teardown() throws IOException {
-		if (in != null) {
-			in.close();
-		}
-
-		in = null;
-	}
-
-
 
 
 	
