@@ -24,123 +24,138 @@ import java.util.Map;
  */
 class FileSorterImpl implements FileSorter{
 
-	public static final long MAX_RAM_VALUE = 100;
-	public static final String INPUT_FILE_DIR = "G:\\automation-heros\\";
-	public static final String CHUNK_FILES_DIR = "G:\\automation-heros\\chunks\\";
-	public static final String SORTED_CHUNK_FILES_DIR = "G:\\automation-heros\\sorted-chunks\\";
-	public static final String INPUT_FILE_NAME = "input.txt";
+	private long maxRamValueInMb;
+
+	
 	public static final String EOF = System.lineSeparator();
+	public static final String CHUNK_DIR = "\\chunks";
+	public static final String DEFAULT_OUTPUT_FILE = "output.txt";
+	public static final String CHUNK_PREFIX = "chunk-";
+	public static final String TXT_EXT = ".txt";
+	public static final String SLASH = "\\";
 	
-	/*
-	 * TODO
-	 * Write testable methods
-	 * refactor methods
-	 * unify file methods
-	 */
-	
-	
-	@Override
-	public void sortFile() throws IOException {
-		//Splite the large file (1GB) to multiple small files (chnunks) that will fit into the RAM
-		spliteLargeFile(new File(INPUT_FILE_DIR + INPUT_FILE_NAME), MAX_RAM_VALUE);
-		//Iterate over all chunk files and sort each one of them using RAM memory
-		sortChunkFiles();
-		//Merge chunks
-		mergeSortedChunks(new FileOutputStream(new File(INPUT_FILE_DIR + "output.txt")));
-	}
 	
 
 	
-	public static void spliteLargeFile(File largeFile, long spliteSizeInMB) throws IOException{
+	@Override
+	public void sortFile(File largeFile) throws IOException {
+		maxRamValueInMb = 100;
+		String chunckFileDirPath = largeFile.getParent() + CHUNK_DIR;
+		
+		spliteAndSortChunk(largeFile, maxRamValueInMb);
+		mergeSortedChunks(new FileOutputStream(new File(largeFile.getParent() + SLASH + DEFAULT_OUTPUT_FILE)), chunckFileDirPath);
+	}
+	
+	@Override
+	public void sortFile(File largeFile, long maxRamMemoryInMb) throws IOException {
+		String chunckFileDirPath = largeFile.getParent() + CHUNK_DIR;
+
+		spliteAndSortChunk(largeFile, maxRamMemoryInMb);		
+		mergeSortedChunks(new FileOutputStream(new File(largeFile.getParent() + SLASH + DEFAULT_OUTPUT_FILE)), chunckFileDirPath);
+	}
+	
+	@Override
+	public void sortFile(File largeFile, File outputFile) throws IOException {
+		maxRamValueInMb = 100;
+		String chunckFileDirPath = largeFile.getParent() + CHUNK_DIR;
+
+		spliteAndSortChunk(largeFile, maxRamValueInMb);		
+		mergeSortedChunks(new FileOutputStream(outputFile), chunckFileDirPath);
+	}
+	
+	@Override
+	public void sortFile(File largeFile, long maxRamMemoryInMb, File outputFile) throws IOException {
+		String chunckFileDirPath = largeFile.getParent() + CHUNK_DIR;
+
+		spliteAndSortChunk(largeFile, maxRamMemoryInMb);		
+		mergeSortedChunks(new FileOutputStream(outputFile), chunckFileDirPath);
+	}
+
+	/**
+
+	 * Splite the input large file into multiple chunk files sorted using RAM memory 
+
+	 * @param largeFile
+
+	 * @param osspliteSizeInMB
+
+	 * @throws IOException
+
+	 */
+	
+	public  void spliteAndSortChunk(File largeFile, long spliteSizeInMB) throws IOException{
+		String chunckFileDirPath = largeFile.getParent() + CHUNK_DIR;
+		
 		if (spliteSizeInMB <= 0) {
 	        throw new IllegalArgumentException("spliteSizeInMB must be more than zero");
 	    }
 
 		int counter = 1;
-	   // long sizeOfChunk = 1024 * 1024 * spliteSizeInMB;
-		long sizeOfChunk =  10 *spliteSizeInMB;
-	    try (BufferedReader br = new BufferedReader(new FileReader(largeFile))) {
-	        //String name = largeFile.getName().substring(0,largeFile.getName().length() - 4);
-	    	File chunkDirectory = new File(CHUNK_FILES_DIR);
-	        if (!chunkDirectory.exists()) chunkDirectory.mkdirs();
-	        
-	        File sortedChunkDirectory = new File(SORTED_CHUNK_FILES_DIR);
+	    long sizeOfChunk = 1024 * 1024 * spliteSizeInMB;
+		BufferedReader br = null;
+	    try  {
+	    	br = new BufferedReader(new FileReader(largeFile));
+	    	
+	        File sortedChunkDirectory = new File(chunckFileDirPath);
 	        if (!sortedChunkDirectory.exists()) sortedChunkDirectory.mkdirs();
 
-	    	String name = "unsorted-chunck-";
-	        String line = br.readLine();
-	        while (line != null) {
-	            File newFile = new File(CHUNK_FILES_DIR, name +  String.format("%03d", counter++)+".txt");
-	            try (OutputStream out = new BufferedOutputStream(new FileOutputStream(newFile))) {
-	                int fileSize = 0;
-	                while (line != null) {
-	                    byte[] bytes = (line + EOF).getBytes(Charset.defaultCharset());
-	                    if (fileSize + bytes.length > sizeOfChunk)
-	                        break;
-	                    out.write(bytes);
-	                    fileSize += bytes.length;
-	                    line = br.readLine();
-	                }
-	            }
+	    	String name = CHUNK_PREFIX;
+	        String line = null;
+	        
+	        List<Integer> fileLines = new ArrayList<>();
+	        int fileSize = 0;
+	        //While spliting each chunk, we will load the chunk data in a list and sort it just before printing it into a file..
+	        while ((line = br.readLine()) != null) {
+	        	fileLines.add(Integer.parseInt(line));
+	        	byte[] bytes = (line + EOF).getBytes(Charset.defaultCharset());
+	        	fileSize += bytes.length;
+	        	if (fileSize >= sizeOfChunk) {
+	        		fileSize = 0;
+	        		Collections.sort(fileLines);
+	        		File chunk = new File(chunckFileDirPath, name +  String.format("%03d", counter++) + TXT_EXT);
+	                createFileFromArrayList(new FileOutputStream(chunk),fileLines );
+	        		fileLines.clear();
+	        	}
 	        }
-	    }
-	}
-	
-	public void sortChunkFiles() throws FileNotFoundException, IOException {
-		  File chunkDirectory = new File(CHUNK_FILES_DIR);
-		  File[] chuckFiles = chunkDirectory.listFiles();
-		  if (chuckFiles != null) {
-		    for (File chunk : chuckFiles) {
-		    	System.out.println("Reading chunk file : " + chunk.getName() +" into RAM memory..");
-		    	File sortedChunkFile = new File(SORTED_CHUNK_FILES_DIR + chunk.getName().substring(2));
-		    	
-		    	//read from the chunk file and store data inside an arrayList
-		    	List<Integer> sortedNumbersList = new ArrayList<>();
-			    BufferedReader br = new BufferedReader(new FileReader(chunk));
-				String line = br.readLine();
-			    while ((line != null) && !line.isEmpty()) {
-			    	try {
-			    		sortedNumbersList.add(Integer.parseInt(line));
-			        	line = br.readLine();
-					} catch (Exception e) {
-			            System.out.println("Error parsing number at line : " + line);
-
-					}
-			    }
-			    br.close();
-			     
-		    	//sort the numbers
-			    System.out.println(sortedNumbersList.toString());
-			    System.out.println("Sorting read chunk in RAM memory, using ArrayList.sort()");
-			    Collections.sort(sortedNumbersList);
-			    System.out.println(sortedNumbersList.toString());
-
-		    	//write the data back to a sorted chunk file
-		    	System.out.println("Saving sorted chunk file to : " + sortedChunkFile.getParent()+ "\\" + sortedChunkFile.getName());
-		    	createFileFromArrayList(new FileOutputStream(sortedChunkFile), sortedNumbersList);
-		    }
-		  } else {
-			  throw new IOException("Error occured while reading Chunk files");
-		  }
+	        
+	        //printing the remaining chunk
+	        Collections.sort(fileLines);
+    		File newFile = new File(chunckFileDirPath, name +  String.format("%03d", counter++) + TXT_EXT);
+            createFileFromArrayList(new FileOutputStream(newFile),fileLines );
+    		fileLines.clear();
+    	           
+            }catch(IOException e) {
+            	 e.printStackTrace();
+            	 throw e;
+            }finally {
+				if(br != null) {
+					br.close();
+				}
+			}
 	}
 	
 
 	
-	public void createFileFromArrayList(FileOutputStream stream, List<Integer> sortedNumbersList) throws FileNotFoundException {
-	    PrintWriter pw = new PrintWriter(stream);
-	    for (Integer number : sortedNumbersList)
-	         pw.println(number);
-	    pw.close();
-	}
 
+	/**
+
+	 * Merge all sorted chunk files into one large output file  
+
+	 * @param output
+
+	 * @param chunckFileDirPath
+
+	 * @throws IOException
+
+	 */
 	
-	public  void mergeSortedChunks(FileOutputStream output) throws IOException{
-			
+	public  void mergeSortedChunks(FileOutputStream output, String chunckFileDirPath) throws IOException{
+	
 		PrintWriter pw = new PrintWriter(output);
 		
 		Map<IntegerWrapper, BufferedReader> map = new HashMap<IntegerWrapper, BufferedReader>();
 		List<BufferedReader> readers = new ArrayList<BufferedReader>();
-		File chunkDirectory = new File(SORTED_CHUNK_FILES_DIR);
+		File chunkDirectory = new File(chunckFileDirPath);
 		File[] sortedChuckFiles = chunkDirectory.listFiles();
 		try{
  
@@ -178,17 +193,50 @@ class FileSorterImpl implements FileSorter{
 			for ( int i = 0; i < sortedChuckFiles.length; i++ ){
 				sortedChuckFiles[i].delete();
 			}
+			chunkDirectory.delete();
 			try{
 				pw.close();
 			}catch(Exception e){
-				
+				e.printStackTrace();
 			}
 		}
 	}
 	
+
+	/**
+
+	 * Print a file from an ArrayList of Integers
+	 * 
+	 * @param stream
+	 * 
+	 * @param sortedNumbersList
+	 * 
+	 * @throws IOException
+	 * 
+	 */
+	public void createFileFromArrayList(FileOutputStream stream, List<Integer> sortedNumbersList) throws IOException{
+		PrintWriter pw = null;
+		try {
+			pw = new PrintWriter(stream);
+			for (Integer number : sortedNumbersList)
+		         pw.println(number);
+		}finally {
+		   if(pw != null)
+			   pw.close();
+		}	   
+	}
+	
 	
 
-	
+
+	/**
+
+	 * Class which is a wrapper class for an Integer. This is necessary for integers duplicates, which may cause equals/hashCode
+
+	 * conflicts within the HashMap used in the file merge.
+	 *
+
+	 */
 
 	private class IntegerWrapper implements Comparable<IntegerWrapper>{
 		private final Integer number;
@@ -201,7 +249,6 @@ class FileSorterImpl implements FileSorter{
 		public int compareTo(IntegerWrapper o) {
 			return number.compareTo(o.number);
 		}
-
 
 		public String toString() {
 			return number.toString();
