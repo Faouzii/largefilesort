@@ -31,13 +31,13 @@ this method is overloaded and can be used with multiple params :
 - output file will be output.txt and will reside in the inputFile dir
 
 
-### public void sortFile(File largeFile, File outputFile) throws IOException;
+### public void sortFile(File largeFile, File outputFile):
 - Takes the input file as a param
 - Takes the output File as param
 - Default max RAM memory in MB is 100MB
 
 
-### public void sortFile(File largeFile ,long maxRamMemoryInMb , File outputFile) throws IOException;
+### public void sortFile(File largeFile ,long maxRamMemoryInMb , File outputFile):
 - Takes the input file as a param
 - Takes max RAM Memory a param
 - Takes the output File as param
