@@ -19,25 +19,25 @@ You can sort a large file using the main method which is sortFile();
 
 this method is overloaded and can be used with multiple params : 
 
-###public void sortFile(File largeFile) : 
+### public void sortFile(File largeFile) : 
 - Takes the input file as a param
 - Default max RAM memory in MB is 100MB
 - output file will be output.txt and will reside in the inputFile dir
 
 
-###public void sortFile(File largeFile, long maxRamMemoryInMb) :
+### public void sortFile(File largeFile, long maxRamMemoryInMb) :
 - Takes the input file as a param
 - Takes max RAM Memory a param
 - output file will be output.txt and will reside in the inputFile dir
 
 
-###public void sortFile(File largeFile, File outputFile) throws IOException;
+### public void sortFile(File largeFile, File outputFile) throws IOException;
 - Takes the input file as a param
 - Takes the output File as param
 - Default max RAM memory in MB is 100MB
 
 
-###public void sortFile(File largeFile ,long maxRamMemoryInMb , File outputFile) throws IOException;
+### public void sortFile(File largeFile ,long maxRamMemoryInMb , File outputFile) throws IOException;
 - Takes the input file as a param
 - Takes max RAM Memory a param
 - Takes the output File as param
